@@ -2,8 +2,8 @@ import qualified Data.Time.Calendar as Calendar
 import qualified Data.Time.Clock as Clock
 import qualified Data.Fixed as Fixed
 
-fecha :: Integer -> Int -> Int -> Integer -> Integer -> Integer -> Clock.UTCTime
-fecha y m d hh mm ss = Clock.UTCTime (Calendar.fromGregorian y m d) (Clock.secondsToDiffTime $ hh * 3600 + mm * 60 + ss)
+aTimePoint :: Integer -> Int -> Int -> Integer -> Integer -> Integer -> Clock.UTCTime
+aTimePoint y m d hh mm ss = Clock.UTCTime (Calendar.fromGregorian y m d) (Clock.secondsToDiffTime $ hh * 3600 + mm * 60 + ss)
 
 -- Intervals
 type Interval = (Clock.UTCTime, Clock.UTCTime)
@@ -30,8 +30,8 @@ taskWithStartAndSecondsDuration name start duration dependencies = Task name (Ju
     where dur = Clock.addUTCTime (Clock.secondsToNominalDiffTime $ fromInteger duration) start
 
 -- Tests
-f1 = fecha 2020 2 29 18 5 23
-f2 = fecha 2020 3 1 1 5 23
+f1 = aTimePoint 2020 2 29 18 5 23
+f2 = aTimePoint 2020 3 1 1 5 23
 
 t1 = Task "task 1" (Just f1) (Just f2) []
 t2 = Task "task 2" Nothing Nothing [RightAfter t1]
@@ -39,8 +39,8 @@ t2 = Task "task 2" Nothing Nothing [RightAfter t1]
 t3 = taskWithStartAndSecondsDuration "task 3" f1 (3 * 60 * 60) [At f2]
 
 main = do
-    let f1 = fecha 2020 2 29 18 5 23
-    let f2 = fecha 2020 3 1 1 5 23
+    let f1 = aTimePoint 2020 2 29 18 5 23
+    let f2 = aTimePoint 2020 3 1 1 5 23
     let i = intervalo f1 f2
     print i
     print $ start t1
