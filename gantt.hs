@@ -7,8 +7,8 @@ aTimePoint y m d hh mm ss = Clock.UTCTime (Calendar.fromGregorian y m d) (Clock.
 
 -- Intervals
 type Interval = (Clock.UTCTime, Clock.UTCTime)
-intervalo :: Clock.UTCTime -> Clock.UTCTime -> Interval
-intervalo f1 f2 = (f1, f2)
+anInterval :: Clock.UTCTime -> Clock.UTCTime -> Interval
+anInterval f1 f2 = (f1, f2)
 
 
 -- Conditions
@@ -41,7 +41,7 @@ t3 = taskWithStartAndSecondsDuration "task 3" f1 (3 * 60 * 60) [At f2]
 main = do
     let f1 = aTimePoint 2020 2 29 18 5 23
     let f2 = aTimePoint 2020 3 1 1 5 23
-    let i = intervalo f1 f2
+    let i = anInterval f1 f2
     print i
     print $ start t1
     print $ conditionStarts $ head $ dependencies t2
