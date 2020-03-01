@@ -1,6 +1,7 @@
 import qualified Data.Time.Calendar as Calendar
 import qualified Data.Time.Clock as Clock
 import qualified Data.Fixed as Fixed
+import Control.Exception (assert)
 
 aTimePoint :: Integer -> Int -> Int -> Integer -> Integer -> Integer -> Clock.UTCTime
 aTimePoint y m d hh mm ss = Clock.UTCTime (Calendar.fromGregorian y m d) (Clock.secondsToDiffTime $ hh * 3600 + mm * 60 + ss)
@@ -29,6 +30,12 @@ taskWithStartAndSecondsDuration :: String -> Clock.UTCTime -> Integer -> [Condit
 taskWithStartAndSecondsDuration name start duration dependencies = Task name (Just start) (Just dur) dependencies
     where dur = Clock.addUTCTime (Clock.secondsToNominalDiffTime $ fromInteger duration) start
 
+
+taskDuration :: Task -> Maybe Clock.NominalDiffTime
+taskDuration (Task _ Nothing _ _) = Nothing
+taskDuration (Task _ _ Nothing _) = Nothing
+taskDuration (Task _ (Just s) (Just e) _) = Just $ Clock.diffUTCTime e s
+
 -- Tests
 f1 = aTimePoint 2020 2 29 18 5 23
 f2 = aTimePoint 2020 3 1 1 5 23
@@ -39,9 +46,4 @@ t2 = Task "task 2" Nothing Nothing [RightAfter t1]
 t3 = taskWithStartAndSecondsDuration "task 3" f1 (3 * 60 * 60) [At f2]
 
 main = do
-    let f1 = aTimePoint 2020 2 29 18 5 23
-    let f2 = aTimePoint 2020 3 1 1 5 23
-    let i = anInterval f1 f2
-    print i
-    print $ start t1
-    print $ conditionStarts $ head $ dependencies t2
+    print $ assert (taskDuration t3 == Just (3 * 60 * 60)) ("test 1 passed")
