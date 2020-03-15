@@ -1,3 +1,9 @@
+module Gantt (
+      Condition
+    , Task
+    , aTimePoint
+    ) where
+
 import qualified Data.Time.Calendar as Calendar
 import qualified Data.Time.Clock as Clock
 import qualified Data.Fixed as Fixed
