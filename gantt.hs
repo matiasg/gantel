@@ -36,6 +36,12 @@ taskDuration (Task _ Nothing _ _) = Nothing
 taskDuration (Task _ _ Nothing _) = Nothing
 taskDuration (Task _ (Just s) (Just e) _) = Just $ Clock.diffUTCTime e s
 
+
+recomputeStart :: Task -> Task
+recomputeStart t@(Task _ _ _ []) = t
+recomputeStart (Task n s e ds) = Task n max_start e ds
+        where max_start = maximum $ s:(map conditionStarts ds)
+
 -- Tests
 f1 = aTimePoint 2020 2 29 18 5 23
 f2 = aTimePoint 2020 3 1 1 5 23
@@ -47,3 +53,4 @@ t3 = taskWithStartAndSecondsDuration "task 3" f1 (3 * 60 * 60) [At f2]
 
 main = do
     print $ assert (taskDuration t3 == Just (3 * 60 * 60)) ("test 1 passed")
+    print $ assert (start (recomputeStart t3) == Just f2) ("test 2 passed")
