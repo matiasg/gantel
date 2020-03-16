@@ -1,6 +1,8 @@
 module Gantt (
       Condition
-    , Task
+    , Task(..)
+    , realEnd
+    , taskWithStartAndSecondsDuration
     , aTimePoint
     ) where
 
@@ -35,6 +37,9 @@ data Task = Task { name :: String
 taskWithStartAndSecondsDuration :: String -> Clock.UTCTime -> Integer -> [Condition] -> Task
 taskWithStartAndSecondsDuration name start duration dependencies = Task name (Just start) (Just dur) dependencies
     where dur = Clock.addUTCTime (Clock.secondsToNominalDiffTime $ fromInteger duration) start
+
+realEnd :: Task -> Clock.UTCTime
+realEnd (Task _ _ (Just e) _) = e
 
 
 taskDuration :: Task -> Maybe Clock.NominalDiffTime
