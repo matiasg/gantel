@@ -21,21 +21,25 @@ anInterval f1 f2 = (f1, f2)
 
 
 -- Conditions
-data Condition = RightAfter Task | At Clock.UTCTime deriving (Show)
+data Condition = RightAfter Task | At Clock.UTCTime deriving (Show, Eq)
 
 conditionStarts :: Condition -> Maybe Clock.UTCTime
 conditionStarts (RightAfter task) = start task
 conditionStarts (At t) = Just t
 
+taskDependence :: Condition -> Maybe Task
+taskDependence (RightAfter t) = Just t
+taskDependence (At _) = Nothing
+
 -- Tasks
 data Task = Task { name :: String
                  , start :: Maybe Clock.UTCTime
                  , end :: Maybe Clock.UTCTime
-                 , dependencies :: [Condition]
-                 } deriving (Show)
+                 , startConditions :: [Condition]
+                 } deriving (Show, Eq)
 
 taskWithStartAndSecondsDuration :: String -> Clock.UTCTime -> Integer -> [Condition] -> Task
-taskWithStartAndSecondsDuration name start duration dependencies = Task name (Just start) (Just dur) dependencies
+taskWithStartAndSecondsDuration name start duration startConditions = Task name (Just start) (Just dur) startConditions
     where dur = Clock.addUTCTime (Clock.secondsToNominalDiffTime $ fromInteger duration) start
 
 realEnd :: Task -> Clock.UTCTime
