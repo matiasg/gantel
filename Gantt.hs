@@ -55,11 +55,31 @@ end t@(Task _ d cs) =
 taskDependencies :: Task -> [Task]
 taskDependencies (Task _ _ cs) = mapMaybe taskDependence cs
 
+dependsOn :: Task -> Task -> Bool
+dependsOn t1 t2
+    | null deps2    = False
+    | elem t1 deps2 = True
+    | otherwise     = any (dependsOn t1) deps2
+    where deps2 = mapMaybe taskDependence (startConditions t2)
 
+revDependsOn :: Task -> Task -> Bool
+revDependsOn = flip dependsOn
+
+
+-- Projects
 type Project = [Task]
 
+oneHead :: Project -> (Task, Project)
+oneHead [] = error "No head for empty project"
+oneHead (t:ts)
+  | any (revDependsOn t) ts = (hts, t:tts)
+  | otherwise = (t, ts)
+  where (hts, tts) = oneHead ts
 
-
+sortProject :: Project -> Project
+sortProject [] = []
+sortProject ts = hts:(sortProject tts)
+  where (hts, tts) = oneHead ts
 
 -- Tests
 f1 = aTimePoint 2020 2 29 18 5 23
@@ -72,9 +92,17 @@ t2 = Task "task 2" 0 [RightAfter t1]
 t3 = taskWithStartAndSecondsDuration "task 3" f1 (3 * 60 * 60) [At f2]
 
 t4 = Task "task 4"  (Clock.secondsToNominalDiffTime 60 * 60) [RightAfter t1, RightAfter t2, At f1, RightAfter t3]
+t5 = Task "task 5"  (Clock.secondsToNominalDiffTime 60 * 60) [RightAfter t2, RightAfter t3]
 
 main = do
     print $ assert (duration t3 == Clock.secondsToNominalDiffTime (3 * 60 * 60)) ("test 1 passed")
     print $ assert (start t3 == Just f2) ("test 2 passed")
     print $ assert (taskDependencies t4 == [t1, t2, t3]) ("test 3 passed")
     print $ assert (start (Task "nothing" 0 [RightAfter t2]) == (Just f2)) ("test 4 passed")
+    print $ assert (dependsOn t1 t2) ("test 5 passed")
+    print $ assert (dependsOn t3 t4) ("test 6 passed")
+    print $ assert (dependsOn t1 t5) ("test 7 passed")
+    print $ assert (oneHead [t5, t3, t1] == (t3, [t5, t1])) ("test 8 passed")
+    print $ assert (oneHead [t5, t2, t1] == (t1, [t5, t2])) ("test 9 passed")
+    print $ assert (sortProject [t5, t2, t1] == [t1, t2, t5]) ("test 10 passed")
+    print $ assert (sortProject [t5, t1, t2] == [t1, t2, t5]) ("test 11 passed")
