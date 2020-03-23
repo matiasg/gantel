@@ -30,6 +30,7 @@ data Condition
 
 conditionStarts :: Condition -> Maybe Clock.UTCTime
 conditionStarts (RightAfter task) = end task
+conditionStarts (RightAfterBoundTask task) = Just $ taskEnd task
 conditionStarts (At t) = Just t
 
 taskDependence :: Condition -> Maybe Task
@@ -37,12 +38,12 @@ taskDependence (RightAfter t) = Just t
 taskDependence (At _) = Nothing
 
 boundCondition :: Condition -> Condition
-boundCondition RightAfter task
-  | isNothing s = task
-  | otherwise   = RightAfterBoundTask (name task) s (fromJust $ end task)
+boundCondition (RightAfter task)
+  | isNothing s = RightAfter task
+  | otherwise   = RightAfterBoundTask $ TaskWithFixedBounds (name task) (fromJust s) (fromJust $ end task)
     where s = start task
-boundCondition RightAfterBoundTask t = t
-boundCondition At t = t
+boundCondition (RightAfterBoundTask t) = (RightAfterBoundTask t)
+boundCondition (At t) = At t
 
 -- Tasks
 data Task = Task { name :: String
@@ -88,11 +89,12 @@ fromTask task
   | otherwise   = Just (TaskWithFixedBounds (name task) (fromJust s) (fromJust $ end task))
     where s = start task
 
-fromTaskWithMap :: Task -> Map Task TaskWithFixedBounds -> Maybe TaskWithFixedBounds
+fromTaskWithMap :: Task -> Map.Map Task TaskWithFixedBounds -> Maybe TaskWithFixedBounds
 fromTaskWithMap (Task n d cs) m
   | isNothing s = Nothing
-  | otherwise   = TaskWithFixedBounds n s e
-    where s = maximum $  .... TODO
+  | otherwise   = Just $ TaskWithFixedBounds n (fromJust s) e
+    where s = maximum $ map conditionStarts cs
+          e = Clock.addUTCTime d (fromJust s)
 
 
 -- Projects
@@ -113,7 +115,7 @@ sortProject ts = hts:(sortProject tts)
 
 --updateProject :: Project -> Project
 --updateProject p = elems $ snd $ updateSortedProject (sortProject p, empty)
---  where updateSortedProject :: (Project, Map Task Task) -> (Project, Map Task Task)
+--  where updateSortedProject :: (Project, Map.Map Task Task) -> (Project, Map.Map Task Task)
 --        updateSortedProject [] = [] -- TODO
 --        updateSortedProject (t:ts, map) = updateSortedProject (ts, insert t newt map)
 --            where newt = Task
@@ -131,6 +133,10 @@ t3 = taskWithStartAndSecondsDuration "task 3" f1 (3 * 60 * 60) [At f2]
 t4 = Task "task 4"  (Clock.secondsToNominalDiffTime 60 * 60) [RightAfter t1, RightAfter t2, At f1, RightAfter t3]
 t5 = Task "task 5"  (Clock.secondsToNominalDiffTime 60 * 60) [RightAfter t2, RightAfter t3]
 
+t3b = TaskWithFixedBounds "task 3" f1 (fromJust $ end t3)
+t4b = TaskWithFixedBounds "task 4" (fromJust $ start t4) (fromJust $ end t4)
+m = Map.fromAscList [(t3, t3b)]
+
 main = do
     print $ assert (duration t3 == Clock.secondsToNominalDiffTime (3 * 60 * 60)) ("test 1 passed")
     print $ assert (start t3 == Just f2) ("test 2 passed")
@@ -144,3 +150,4 @@ main = do
     print $ assert (sortProject [t5, t2, t1] == [t1, t2, t5]) ("test 10 passed")
     print $ assert (sortProject [t5, t1, t2] == [t1, t2, t5]) ("test 11 passed")
     print $ assert (fromTask t2 == Just (TaskWithFixedBounds "task 2" (fromJust $ end t1) (fromJust $ end t1))) ("test 12 passed")
+    print $ assert (fromTaskWithMap t4 m == Just t4b) ("test 13 passed")
