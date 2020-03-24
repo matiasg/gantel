@@ -1,8 +1,9 @@
 module Gantt (
-      Condition
+      Condition(..)
     , Task(..)
-    , taskWithStartAndSecondsDuration
     , aTimePoint
+    , end
+    , start
     ) where
 
 import qualified Data.Time.Calendar as Calendar
@@ -54,9 +55,6 @@ data Task = Task { name :: String
 instance Ord Task where
     compare t1 t2 = compare (name t1) (name t2)
 
-taskWithStartAndSecondsDuration :: String -> Clock.UTCTime -> Integer -> [Condition] -> Task
-taskWithStartAndSecondsDuration name start duration startConditions = Task name dur ((At start):startConditions)
-    where dur = (Clock.secondsToNominalDiffTime $ fromInteger duration)
 
 start :: Task -> Maybe Clock.UTCTime
 start (Task _ _ cs) = maximum $ map conditionStarts cs
@@ -131,7 +129,7 @@ dur = Clock.diffUTCTime f2 f1
 t1 = Task "task 1" dur [At f1]
 t2 = Task "task 2" 0 [RightAfter t1]
 
-t3 = taskWithStartAndSecondsDuration "task 3" f1 (3 * 60 * 60) [At f2]
+t3 = Task "task 3" (3 * 60 * 60) [At f2]
 
 t4 = Task "task 4"  (Clock.secondsToNominalDiffTime 60 * 60) [RightAfter t1, RightAfter t2, At f1, RightAfter t3]
 t5 = Task "task 5"  (Clock.secondsToNominalDiffTime 60 * 60) [RightAfter t2, RightAfter t3]
