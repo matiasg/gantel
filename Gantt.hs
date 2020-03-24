@@ -9,6 +9,7 @@ module Gantt (
 import qualified Data.Time.Calendar as Calendar
 import qualified Data.Time.Clock as Clock
 import qualified Data.Fixed as Fixed
+import Data.List
 import Control.Exception (assert)
 import Data.Maybe (mapMaybe, fromJust, isNothing)
 import qualified Data.Map.Strict as Map
@@ -121,6 +122,13 @@ updateProject p = Map.elems $ snd $ updateSortedProject (sortProject p, Map.empt
         updateSortedProject (t:ts, m) = updateSortedProject (ts, Map.insert t newt m)
             where newt = fromJust $ fromTaskWithMap t m  -- TODO: this is wrong
 
+showSortedProject :: Project -> String
+showSortedProject p = swnl sorted
+    where sorted = Data.List.sortBy (\t1 t2 -> compare (taskStart t1) (taskStart t2)) (updateProject p)
+          swnl :: [TaskWithFixedBounds] -> String
+          swnl [] = ""
+          swnl (t:ts) = (taskName t) ++ ": [" ++ (show $ taskStart t) ++ "  -  " ++ (show $ taskEnd t) ++ "]\n" ++ (swnl ts)
+
 -- Tests
 f1 = aTimePoint 2020 2 29 18 5 23
 f2 = aTimePoint 2020 3 1 1 5 23
@@ -140,7 +148,8 @@ m = Map.fromAscList [(t3, t3b)]
 
 main = do
     print $ assert (duration t3 == Clock.secondsToNominalDiffTime (3 * 60 * 60)) ("test 1 passed")
-    print $ assert (start t3 == Just f2) ("test 2 passed")
+    print $ assert (start t3 == Just f2) ("test 2.a passed")
+    print $ assert (end t4 == (Just $ Clock.addUTCTime (duration t3 + duration t4) f2)) ("test 2.b passed")
     print $ assert (taskDependencies t4 == [t1, t2, t3]) ("test 3 passed")
     print $ assert (start (Task "nothing" 0 [RightAfter t2]) == (Just f2)) ("test 4 passed")
     print $ assert (dependsOn t1 t2) ("test 5 passed")
@@ -152,3 +161,4 @@ main = do
     print $ assert (sortProject [t5, t1, t2] == [t1, t2, t5]) ("test 11 passed")
     print $ assert (fromTask t2 == Just (TaskWithFixedBounds "task 2" (fromJust $ end t1) (fromJust $ end t1))) ("test 12 passed")
     print $ assert (fromTaskWithMap t4 m == Just t4b) ("test 13 passed")
+    putStr $ showSortedProject [t5, t3, t4, t2, t1]
