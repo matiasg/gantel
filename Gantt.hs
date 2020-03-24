@@ -51,6 +51,9 @@ data Task = Task { name :: String
                  , startConditions :: [Condition]
                  } deriving (Show, Eq)
 
+instance Ord Task where
+    compare t1 t2 = compare (name t1) (name t2)
+
 taskWithStartAndSecondsDuration :: String -> Clock.UTCTime -> Integer -> [Condition] -> Task
 taskWithStartAndSecondsDuration name start duration startConditions = Task name dur ((At start):startConditions)
     where dur = (Clock.secondsToNominalDiffTime $ fromInteger duration)
@@ -113,12 +116,12 @@ sortProject ts = hts:(sortProject tts)
   where (hts, tts) = oneHead ts
 
 
---updateProject :: Project -> Project
---updateProject p = elems $ snd $ updateSortedProject (sortProject p, empty)
---  where updateSortedProject :: (Project, Map.Map Task Task) -> (Project, Map.Map Task Task)
---        updateSortedProject [] = [] -- TODO
---        updateSortedProject (t:ts, map) = updateSortedProject (ts, insert t newt map)
---            where newt = Task
+updateProject :: Project -> [TaskWithFixedBounds]
+updateProject p = Map.elems $ snd $ updateSortedProject (sortProject p, Map.empty)
+  where updateSortedProject :: (Project, Map.Map Task TaskWithFixedBounds) -> (Project, Map.Map Task TaskWithFixedBounds)
+        updateSortedProject ([], m) = ([], m)
+        updateSortedProject (t:ts, m) = updateSortedProject (ts, Map.insert t newt m)
+            where newt = fromJust $ fromTaskWithMap t m  -- TODO: this is wrong
 
 -- Tests
 f1 = aTimePoint 2020 2 29 18 5 23
