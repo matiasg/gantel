@@ -12,6 +12,7 @@ import qualified Data.Fixed as Fixed
 import Data.List
 import Control.Exception (assert)
 import Data.Maybe (mapMaybe, fromJust, isNothing)
+import Data.Hashable (hash)
 import qualified Data.Map.Strict as Map
 
 aTimePoint :: Integer -> Int -> Int -> Integer -> Integer -> Integer -> Clock.UTCTime
@@ -38,6 +39,7 @@ conditionStarts (At t) = Just t
 taskDependence :: Condition -> Maybe Task
 taskDependence (RightAfter t) = Just t
 taskDependence (At _) = Nothing
+taskDependence (RightAfterBoundTask t) = Nothing
 
 boundCondition :: Condition -> Condition
 boundCondition (RightAfter task)
@@ -85,6 +87,7 @@ data TaskWithFixedBounds = TaskWithFixedBounds { taskName :: String
                                                , taskStart :: Clock.UTCTime
                                                , taskEnd :: Clock.UTCTime
                                                } deriving (Show, Eq)
+
 fromTask :: Task -> Maybe TaskWithFixedBounds
 fromTask task
   | isNothing s = Nothing
@@ -134,6 +137,21 @@ showSortedProject p ot = swnl sorted ot
           swnl [] _ = ""
           swnl (t:ts) ot = (showOneTask t ot) ++ "\n" ++ (swnl ts ot)
 
+taskHash :: Task -> String
+taskHash = show . abs . hash . name
+
+graphvizString :: Project -> String
+graphvizString p = (graphHead p) ++ "\n" ++ (thedigraph  p) ++ "}\n"
+    where thedigraph :: Project -> String
+          thedigraph [] = ""
+          thedigraph (t:ts) = (foldl (\prev d -> prev ++ (taskHash t) ++ " -> " ++ (taskHash d) ++ "\n") "" (taskDependencies t)) ++ thedigraph ts
+          graphHead :: Project -> String
+          graphHead p = "digraph Project {\n" ++ taskHahes p
+          taskHahes :: Project -> String
+          taskHahes [] = ""
+          taskHahes (t:ts) = (taskHash t) ++ " [shape=box, label=\"" ++ name t ++ "\"]\n" ++ taskHahes ts
+
+
 
 -- Tests
 f1 = aTimePoint 2020 2 29 18 5 23
@@ -167,4 +185,4 @@ main = do
     print $ assert (sortProject [t5, t1, t2] == [t1, t2, t5]) ("test 11 passed")
     print $ assert (fromTask t2 == Just (TaskWithFixedBounds "task 2" (fromJust $ end t1) (fromJust $ end t1))) ("test 12 passed")
     print $ assert (fromTaskWithMap t4 m == Just t4b) ("test 13 passed")
-    putStr $ showSortedProject [t5, t3, t4, t2, t1] Csv
+    putStr $ graphvizString [t5, t3, t4, t2, t1]
