@@ -4,6 +4,7 @@ module Gantt (
     , aTimePoint
     , end
     , start
+    , graphvizString
     ) where
 
 import qualified Data.Time.Calendar as Calendar
@@ -144,7 +145,7 @@ graphvizString :: Project -> String
 graphvizString p = (graphHead p) ++ "\n" ++ (thedigraph  p) ++ "}\n"
     where thedigraph :: Project -> String
           thedigraph [] = ""
-          thedigraph (t:ts) = let joiner = (\prev d -> prev ++ (taskHash t) ++ " -> " ++ (taskHash d) ++ "\n") in
+          thedigraph (t:ts) = let joiner = (\prev d -> prev ++ (taskHash d) ++ " -> " ++ (taskHash t) ++ "\n") in
                 (foldl joiner "" (taskDependencies t)) ++ thedigraph ts
           graphHead :: Project -> String
           graphHead p = "digraph Project {\n" ++ taskHahes p
