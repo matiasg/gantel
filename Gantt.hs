@@ -122,12 +122,18 @@ updateProject p = Map.elems $ snd $ updateSortedProject (sortProject p, Map.empt
         updateSortedProject (t:ts, m) = updateSortedProject (ts, Map.insert t newt m)
             where newt = fromJust $ fromTaskWithMap t m  -- TODO: this is wrong
 
-showSortedProject :: Project -> String
-showSortedProject p = swnl sorted
-    where sorted = Data.List.sortBy (\t1 t2 -> compare (taskStart t1) (taskStart t2)) (updateProject p)
-          swnl :: [TaskWithFixedBounds] -> String
-          swnl [] = ""
-          swnl (t:ts) = (taskName t) ++ ": [" ++ (show $ taskStart t) ++ "  -  " ++ (show $ taskEnd t) ++ "]\n" ++ (swnl ts)
+data OutputType = Csv | AnyStr
+showOneTask :: TaskWithFixedBounds -> OutputType -> String
+showOneTask t Csv = "\"" ++ (taskName t) ++ "\"," ++ (show $ taskStart t) ++ "," ++ (show $ taskEnd t)
+showOneTask t AnyStr = (taskName t) ++ ": [" ++ (show $ taskStart t) ++ "  -  " ++ (show $ taskEnd t) ++ "]"
+
+showSortedProject :: Project -> OutputType -> String
+showSortedProject p ot = swnl sorted ot
+    where sorted = Data.List.sortBy (\t1 t2 -> compare (taskStart t1, taskEnd t1) (taskStart t2, taskEnd t2)) (updateProject p)
+          swnl :: [TaskWithFixedBounds] -> OutputType -> String
+          swnl [] _ = ""
+          swnl (t:ts) ot = (showOneTask t ot) ++ "\n" ++ (swnl ts ot)
+
 
 -- Tests
 f1 = aTimePoint 2020 2 29 18 5 23
@@ -161,4 +167,4 @@ main = do
     print $ assert (sortProject [t5, t1, t2] == [t1, t2, t5]) ("test 11 passed")
     print $ assert (fromTask t2 == Just (TaskWithFixedBounds "task 2" (fromJust $ end t1) (fromJust $ end t1))) ("test 12 passed")
     print $ assert (fromTaskWithMap t4 m == Just t4b) ("test 13 passed")
-    putStr $ showSortedProject [t5, t3, t4, t2, t1]
+    putStr $ showSortedProject [t5, t3, t4, t2, t1] Csv
