@@ -144,7 +144,8 @@ graphvizString :: Project -> String
 graphvizString p = (graphHead p) ++ "\n" ++ (thedigraph  p) ++ "}\n"
     where thedigraph :: Project -> String
           thedigraph [] = ""
-          thedigraph (t:ts) = (foldl (\prev d -> prev ++ (taskHash t) ++ " -> " ++ (taskHash d) ++ "\n") "" (taskDependencies t)) ++ thedigraph ts
+          thedigraph (t:ts) = let joiner = (\prev d -> prev ++ (taskHash t) ++ " -> " ++ (taskHash d) ++ "\n") in
+                (foldl joiner "" (taskDependencies t)) ++ thedigraph ts
           graphHead :: Project -> String
           graphHead p = "digraph Project {\n" ++ taskHahes p
           taskHahes :: Project -> String
